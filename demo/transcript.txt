@@ -1,0 +1,71 @@
+$ formats
+supported transcript formats:
+
+  claude-code-session  Claude Code session JSONL: assistant messages with
+                       tool_use blocks (Read/Edit/Bash) and tool_result
+                       outputs. Detected by message.content arrays.
+  codex-exec-json      Codex `exec --json` output: JSON lines with a tool
+                       field (Bash/Read/Edit) plus command and output.
+                       Detected by the tool field on a JSON line.
+  opencode-session     OpenCode session JSONL: same generic tool lines as
+                       codex-exec-json (tool/command/output/file).
+  generic-jsonl        Any JSONL with {"tool", "file"|"command",
+                       "output"} lines, or {"final_message": "..."}.
+                       This is the fallback format.
+
+Detection is by line shape, in the order above. A line that is not
+valid JSON marks the transcript truncated: verification then fails
+closed (every claim UNVERIFIED) instead of guessing.
+exit: 0
+$ verify --report fixtures/report-overclaim.md --transcript fixtures/session-overclaim.jsonl
+claimtrace verify — fixtures/report-overclaim.md vs fixtures/session-overclaim.jsonl
+
+CLAIM                                        TYPE         VERDICT      EVIDENCE         DETAIL
+--------------------------------------------------------------------------------------------------------------
+Reviewed all 12 files                        coverage     UNVERIFIED   -                unopened: src/pricing.ts, src/search.ts, src/webhooks.ts
+All 45 tests pass                            test-run     CONTRADICTED transcript:20    output shows 43 passing, 2 failing — claimed 45 of 45 pass
+Ran `npm test`                               test-run     VERIFIED     transcript:20    command ran at transcript:20
+Fixed 3 defects                              defect-fixed UNVERIFIED   -                only 2 edit(s) in transcript, claimed 3 defect(s) fixed
+Fixed defect 1 in `src/auth.ts`              defect-fixed VERIFIED     transcript:22    edit at transcript:22
+Fixed defect 2 in `src/cart.ts`              defect-fixed VERIFIED     transcript:24    edit at transcript:24
+Fixed defect 3 in `src/pricing.ts`           defect-fixed UNVERIFIED   -                no edit touching src/pricing.ts in transcript
+Reviewed `src/auth.ts`                       file-opened  VERIFIED     transcript:2     read at transcript:2
+Reviewed `src/cart.ts`                       file-opened  VERIFIED     transcript:4     read at transcript:4
+Reviewed `src/checkout.ts`                   file-opened  VERIFIED     transcript:6     read at transcript:6
+Reviewed `src/inventory.ts`                  file-opened  VERIFIED     transcript:8     read at transcript:8
+Reviewed `src/orders.ts`                     file-opened  VERIFIED     transcript:10    read at transcript:10
+Reviewed `src/payments.ts`                   file-opened  VERIFIED     transcript:12    read at transcript:12
+Reviewed `src/pricing.ts`                    file-opened  UNVERIFIED   -                no read of src/pricing.ts in transcript
+Reviewed `src/products.ts`                   file-opened  VERIFIED     transcript:14    read at transcript:14
+Reviewed `src/search.ts`                     file-opened  UNVERIFIED   -                no read of src/search.ts in transcript
+Reviewed `src/shipping.ts`                   file-opened  VERIFIED     transcript:16    read at transcript:16
+Reviewed `src/users.ts`                      file-opened  VERIFIED     transcript:18    read at transcript:18
+Reviewed `src/webhooks.ts`                   file-opened  UNVERIFIED   -                no read of src/webhooks.ts in transcript
+--------------------------------------------------------------------------------------------------------------
+12 VERIFIED, 6 UNVERIFIED, 1 CONTRADICTED — exit 1
+exit: 1
+$ verify --report fixtures/report-honest.md --transcript fixtures/session-overclaim.jsonl
+claimtrace verify — fixtures/report-honest.md vs fixtures/session-overclaim.jsonl
+
+CLAIM                                        TYPE         VERDICT      EVIDENCE         DETAIL
+--------------------------------------------------------------------------------------------------------------
+43 of 45 tests pass                          test-run     VERIFIED     transcript:20    output shows 43 passing, 2 failing
+Ran `npm test`                               test-run     VERIFIED     transcript:20    command ran at transcript:20
+Fixed 2 defects                              defect-fixed VERIFIED     -                2 edit(s) in transcript, claimed 2 defect(s) fixed
+Fixed defect 1 in `src/auth.ts`              defect-fixed VERIFIED     transcript:22    edit at transcript:22
+Fixed defect 2 in `src/cart.ts`              defect-fixed VERIFIED     transcript:24    edit at transcript:24
+Reviewed `src/auth.ts`                       file-opened  VERIFIED     transcript:2     read at transcript:2
+Reviewed `src/cart.ts`                       file-opened  VERIFIED     transcript:4     read at transcript:4
+Reviewed `src/checkout.ts`                   file-opened  VERIFIED     transcript:6     read at transcript:6
+Reviewed `src/inventory.ts`                  file-opened  VERIFIED     transcript:8     read at transcript:8
+Reviewed `src/orders.ts`                     file-opened  VERIFIED     transcript:10    read at transcript:10
+Reviewed `src/payments.ts`                   file-opened  VERIFIED     transcript:12    read at transcript:12
+Reviewed `src/products.ts`                   file-opened  VERIFIED     transcript:14    read at transcript:14
+Reviewed `src/shipping.ts`                   file-opened  VERIFIED     transcript:16    read at transcript:16
+Reviewed `src/users.ts`                      file-opened  VERIFIED     transcript:18    read at transcript:18
+--------------------------------------------------------------------------------------------------------------
+14 VERIFIED, 0 UNVERIFIED, 0 CONTRADICTED — all claims verified — exit 0
+
+note: 1 claim-like line(s) could not be parsed — see `claimtrace extract`:
+  UNPARSED: Reviewed 9 files in scope.
+exit: 0

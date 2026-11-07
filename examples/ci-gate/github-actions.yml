@@ -1,0 +1,33 @@
+name: claimtrace gate
+
+# Example: gate a pull request on the agent's report matching its session.
+# Copy this file into .github/workflows/ and commit the report + transcript
+# paths your agent run produces. The job fails when any claim is
+# UNVERIFIED or CONTRADICTED (claimtrace exits 1).
+#
+# claimtrace is not on npm yet: this workflow installs it from source.
+# See README.md ("Install") for the same three steps.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  claimtrace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install claimtrace from source
+        run: |
+          git clone --depth 1 https://github.com/techdevfun/claimtrace.git /tmp/claimtrace
+          cd /tmp/claimtrace
+          npm ci
+          npm run build
+      - name: Verify the agent report against its transcript
+        run: |
+          node /tmp/claimtrace/dist/cli.js verify \
+            --report agent-report.md \
+            --transcript session.jsonl
