@@ -30,11 +30,12 @@ function editCount(t: Transcript): number {
 
 function commandLine(t: Transcript, command: string): number | undefined {
   const want = command.trim().toLowerCase();
+  // One direction only: the transcript command must contain the claimed
+  // command. The reverse (claim is a superstring of what ran) must NOT
+  // match — claiming "npm test --watch" when only "npm test" ran is a
+  // false positive in a verification tool.
   const hit = t.events.find(
-    (e) =>
-      e.kind === "command" &&
-      e.command !== undefined &&
-      (e.command.toLowerCase().includes(want) || want.includes(e.command.toLowerCase())),
+    (e) => e.kind === "command" && e.command !== undefined && e.command.toLowerCase().includes(want),
   );
   return hit?.line;
 }

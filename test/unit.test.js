@@ -143,6 +143,21 @@ test("verify: test-run VERIFIED on matching counts", () => {
   assert.equal(rows[0].verdict, "VERIFIED");
 });
 
+test("verify: stricter command claim does NOT verify against a weaker run", () => {
+  // Council probe (2026-11-07): transcript ran only "npm test"; a claim of
+  // "npm test --watch" must be UNVERIFIED, while the exact claim verifies.
+  const t = parseTranscript(SESSION);
+  const { rows } = verifyClaims(
+    [
+      { type: "test-run", text: "Ran `npm test --watch`.", command: "npm test --watch" },
+      { type: "test-run", text: "Ran `npm test`.", command: "npm test" },
+    ],
+    t,
+  );
+  assert.equal(rows[0].verdict, "UNVERIFIED");
+  assert.equal(rows[1].verdict, "VERIFIED");
+});
+
 test("verify: defect-fixed VERIFIED vs UNVERIFIED", () => {
   const t = parseTranscript(SESSION);
   const { rows } = verifyClaims(
