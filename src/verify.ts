@@ -2,7 +2,8 @@
  * Verification: each claim from the report against the transcript evidence.
  *
  * Rules (deterministic, fail-closed):
- *  - file-opened: VERIFIED iff a read event names the exact path.
+ *  - file-opened: VERIFIED iff a read event names the path (a relative
+ *    report path matches an absolute transcript path on a "/" boundary).
  *  - test-run "all N pass": VERIFIED iff the last test run's output shows
  *    N passing and 0 failing; CONTRADICTED iff it shows other counts.
  *  - test-run "ran <cmd>": VERIFIED iff the command appears in the transcript.
@@ -16,7 +17,7 @@
  * parsed from test output, and "transcript:<line>" pointers.
  */
 import type { Claim, Transcript, VerdictRow } from "./types.js";
-import { lastTestRun, normalizePath, openedFiles, parseTestCounts } from "./transcript.js";
+import { lastTestRun, normalizePath, openedFiles, parseTestCounts, samePath } from "./transcript.js";
 
 export interface Verification {
   rows: VerdictRow[];
@@ -60,7 +61,7 @@ export function verifyClaims(claims: Claim[], t: Transcript): Verification {
     switch (claim.type) {
       case "file-opened": {
         const file = normalizePath(claim.file ?? "");
-        const hit = t.events.find((e) => e.kind === "read" && e.file === file);
+        const hit = t.events.find((e) => e.kind === "read" && e.file !== undefined && samePath(e.file, file));
         rows.push({
           claim: claim.text,
           type: claim.type,
@@ -126,7 +127,7 @@ export function verifyClaims(claims: Claim[], t: Transcript): Verification {
       case "defect-fixed": {
         if (claim.file) {
           const file = normalizePath(claim.file);
-          const hit = t.events.find((e) => e.kind === "edit" && e.file === file);
+          const hit = t.events.find((e) => e.kind === "edit" && e.file !== undefined && samePath(e.file, file));
           rows.push({
             claim: claim.text,
             type: claim.type,
@@ -155,7 +156,7 @@ export function verifyClaims(claims: Claim[], t: Transcript): Verification {
         const named = claims
           .filter((c) => c.type === "file-opened" && c.file)
           .map((c) => normalizePath(c.file as string));
-        const missing = named.filter((f) => !opened.has(f));
+        const missing = named.filter((f) => ![...opened].some((o) => samePath(o, f)));
         if (missing.length > 0) {
           rows.push({
             claim: claim.text,
