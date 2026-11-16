@@ -109,6 +109,40 @@ test("parseTestCounts: passing/failing, summary and ratio forms", () => {
   assert.equal(parseTestCounts("no numbers here"), null);
 });
 
+test("verify: absolute transcript paths match relative report paths (Claude Code logs record absolute file_path)", () => {
+  const text = [
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"u1","name":"Read","input":{"file_path":"/home/user/widget-shop/src/auth.ts"}}]}}',
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"u2","name":"Edit","input":{"file_path":"/home/user/widget-shop/src/auth.ts"}}]}}',
+  ].join("\n");
+  const t = parseTranscript(text);
+  const { rows } = verifyClaims(
+    [
+      { type: "file-opened", text: "Reviewed `src/auth.ts`.", file: "src/auth.ts" },
+      { type: "defect-fixed", text: "Fixed defect 1 in `src/auth.ts`.", file: "src/auth.ts" },
+      { type: "coverage", text: "Reviewed all 1 files.", count: 1 },
+    ],
+    t,
+  );
+  assert.equal(rows[0].verdict, "VERIFIED");
+  assert.equal(rows[0].evidence, "transcript:1");
+  assert.equal(rows[1].verdict, "VERIFIED");
+  assert.equal(rows[2].verdict, "VERIFIED");
+});
+
+test("verify: absolute-path matching does not false-positive on other files", () => {
+  const text = [
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"u1","name":"Read","input":{"file_path":"/home/user/widget-shop/src/notauth.ts"}}]}}',
+    '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"u2","name":"Read","input":{"file_path":"/home/user/widget-shop/xsrc/auth.ts"}}]}}',
+  ].join("\n");
+  const t = parseTranscript(text);
+  const { rows } = verifyClaims(
+    [{ type: "file-opened", text: "Reviewed `src/auth.ts`.", file: "src/auth.ts" }],
+    t,
+  );
+  // Neither /src/notauth.ts nor /xsrc/auth.ts is src/auth.ts ("/" boundary).
+  assert.equal(rows[0].verdict, "UNVERIFIED");
+});
+
 test("verify: file-opened VERIFIED vs UNVERIFIED", () => {
   const t = parseTranscript(SESSION);
   const { rows } = verifyClaims(
