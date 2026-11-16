@@ -69,7 +69,7 @@ node dist/cli.js formats
 
 | Claim | VERIFIED when | Otherwise |
 |---|---|---|
-| file-opened — "reviewed / opened / read `src/a.ts`" | a tool call in the transcript read that exact path | UNVERIFIED |
+| file-opened — "reviewed / opened / read `src/a.ts`" | a tool call in the transcript read that path (a relative report path matches an absolute transcript path) | UNVERIFIED |
 | test-run — "all 45 tests pass" | the test command ran and its output shows 45 passing, 0 failing | CONTRADICTED if the output shows other counts; UNVERIFIED if no test run is recorded |
 | test-run — "ran `npm test`" | the command appears in the transcript | UNVERIFIED |
 | defect-fixed — "fixed defect 1 in `src/a.ts`" | the transcript has an edit touching that file | UNVERIFIED |
