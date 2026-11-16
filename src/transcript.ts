@@ -21,6 +21,21 @@ export function normalizePath(p: string): string {
   return p.replace(/^\.\//, "").replace(/[.,;:)\]]+$/, "");
 }
 
+/**
+ * Compare two file paths for the same file. Equal after normalization, or
+ * one is a suffix of the other on a "/" boundary — so a report's relative
+ * `src/a.ts` matches a transcript's absolute `/home/user/proj/src/a.ts`.
+ * Real Claude Code logs record absolute file_path, while reports name
+ * relative paths; strict equality would mark every such claim UNVERIFIED.
+ * The "/" boundary stops `xsrc/a.ts` matching `src/a.ts`.
+ */
+export function samePath(a: string, b: string): boolean {
+  const x = normalizePath(a);
+  const y = normalizePath(b);
+  if (x === y) return true;
+  return x.endsWith(`/${y}`) || y.endsWith(`/${x}`);
+}
+
 /** Parse "43 passing / 2 failing" style counts out of captured test output. */
 export function parseTestCounts(output: string): TestCounts | null {
   const passing = output.match(/(\d+)\s+passing\b/i) ?? output.match(/(\d+)\s+passed\b/i);
